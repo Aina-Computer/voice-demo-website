@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AudioRecorder } from "@/components/audio-recorder";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
+type UploadMode = "file" | "record";
 
 interface UploadResponse {
   success: boolean;
@@ -23,6 +25,7 @@ interface UploadResponse {
 }
 
 export function AudioUpload() {
+  const [mode, setMode] = useState<UploadMode>("file");
   const [name, setName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
@@ -162,6 +165,29 @@ export function AudioUpload() {
     }
   };
 
+  const handleRecordingComplete = useCallback((audioBlob: Blob, duration: number) => {
+    // Convert blob to file with proper extension based on MIME type
+    const baseMimeType = audioBlob.type.split(";")[0];
+    let extension = "webm";
+
+    if (baseMimeType === "audio/mp4" || baseMimeType === "audio/m4a") {
+      extension = "m4a";
+    } else if (baseMimeType === "audio/webm") {
+      extension = "webm";
+    } else if (baseMimeType === "audio/ogg") {
+      extension = "ogg";
+    }
+
+    const file = new File([audioBlob], `recording-${Date.now()}.${extension}`, {
+      type: audioBlob.type,
+    });
+
+    setSelectedFile(file);
+    setAudioDuration(duration);
+    setUploadStatus("idle");
+    setMessage("");
+  }, []);
+
   const formatDuration = (seconds: number) => {
     return `${seconds.toFixed(1)}s`;
   };
@@ -179,6 +205,30 @@ export function AudioUpload() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Mode Tabs */}
+        <div className="flex gap-2 p-1 bg-neutral-100 dark:bg-neutral-900 rounded-lg">
+          <button
+            onClick={() => setMode("file")}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === "file"
+                ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-sm"
+                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-50"
+            }`}
+          >
+            📁 Upload File
+          </button>
+          <button
+            onClick={() => setMode("record")}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === "record"
+                ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-sm"
+                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-50"
+            }`}
+          >
+            🎙️ Record Now
+          </button>
+        </div>
+
         {/* Name Input */}
         <div className="space-y-2">
           <label htmlFor="name" className="text-sm font-medium">
@@ -194,51 +244,67 @@ export function AudioUpload() {
           />
         </div>
 
-        {/* File Upload Area */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Audio File</label>
-          <div
-            {...getRootProps()}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${
-                isDragActive
-                  ? "border-neutral-900 bg-neutral-50 dark:border-neutral-50 dark:bg-neutral-900"
-                  : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-700 dark:hover:border-neutral-600"
-              }
-              ${uploadStatus === "uploading" ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-          >
-            <input {...getInputProps()} disabled={uploadStatus === "uploading"} />
-            {selectedFile ? (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
-                  ✓ {selectedFile.name}
-                </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {formatFileSize(selectedFile.size)} • {formatDuration(audioDuration || 0)}
-                </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Click or drag to replace
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  {isDragActive
-                    ? "Drop your audio file here"
-                    : "Drag & drop your audio file here"}
-                </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  or click to browse
-                </p>
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                  Supports: MP3, WAV, M4A, OGG • Max: 10MB • Min: 1 minute
-                </p>
-              </div>
-            )}
+        {/* File Upload Mode */}
+        {mode === "file" && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Audio File</label>
+            <div
+              {...getRootProps()}
+              className={`
+                border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+                ${
+                  isDragActive
+                    ? "border-neutral-900 bg-neutral-50 dark:border-neutral-50 dark:bg-neutral-900"
+                    : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-700 dark:hover:border-neutral-600"
+                }
+                ${uploadStatus === "uploading" ? "opacity-50 cursor-not-allowed" : ""}
+              `}
+            >
+              <input {...getInputProps()} disabled={uploadStatus === "uploading"} />
+              {selectedFile ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                    ✓ {selectedFile.name}
+                  </p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {formatFileSize(selectedFile.size)} • {formatDuration(audioDuration || 0)}
+                  </p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Click or drag to replace
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    {isDragActive
+                      ? "Drop your audio file here"
+                      : "Drag & drop your audio file here"}
+                  </p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    or click to browse
+                  </p>
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                    Supports: MP3, WAV, M4A, OGG • Max: 10MB • Min: 1 minute
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Record Mode */}
+        {mode === "record" && (
+          <AudioRecorder onRecordingComplete={handleRecordingComplete} />
+        )}
+
+        {/* Recording Ready Indicator */}
+        {mode === "record" && selectedFile && audioDuration && (
+          <Alert>
+            <AlertDescription>
+              ✓ Recording ready ({formatDuration(audioDuration)}) - Click Upload Audio below
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Upload Progress */}
         {uploadStatus === "uploading" && (

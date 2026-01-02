@@ -15,6 +15,7 @@ const ALLOWED_MIME_TYPES = [
   "audio/mp4", // .m4a
   "audio/x-m4a", // .m4a (alternative)
   "audio/ogg", // .ogg
+  "audio/webm", // .webm (browser recordings)
 ];
 
 export async function POST(request: NextRequest) {
@@ -39,11 +40,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    // Validate file type (check base MIME type, ignoring codecs)
+    const baseMimeType = file.type.split(";")[0].trim();
+    if (!ALLOWED_MIME_TYPES.includes(baseMimeType)) {
       return NextResponse.json(
         {
-          error: "Invalid file type. Please upload .mp3, .wav, .m4a, or .ogg files",
+          error: "Invalid file type. Please upload .mp3, .wav, .m4a, .ogg, or .webm files",
         },
         { status: 400 }
       );
