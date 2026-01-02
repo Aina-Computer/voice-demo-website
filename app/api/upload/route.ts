@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate duration exists
-    if (!duration) {
+    // Validate duration is at least 1 minute (60 seconds)
+    if (!duration || duration < 60) {
       return NextResponse.json(
-        { error: "Invalid audio duration" },
+        { error: "Audio duration must be at least 1 minute (60 seconds)" },
         { status: 400 }
       );
     }

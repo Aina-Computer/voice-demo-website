@@ -39,7 +39,12 @@ export function AudioUpload() {
       audio.onloadedmetadata = () => {
         window.URL.revokeObjectURL(audio.src);
         const duration = audio.duration;
-        resolve(duration);
+
+        if (duration < 60) {
+          reject(new Error("Audio duration must be at least 1 minute (60 seconds)"));
+        } else {
+          resolve(duration);
+        }
       };
 
       audio.onerror = () => {
@@ -170,7 +175,7 @@ export function AudioUpload() {
       <CardHeader>
         <CardTitle className="text-2xl">🎤 Audio Upload - CES Demo</CardTitle>
         <CardDescription>
-          Upload your audio recording and we'll send it to Slack
+          Upload your audio recording (minimum 1 minute)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -228,7 +233,7 @@ export function AudioUpload() {
                   or click to browse
                 </p>
                 <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                  Supports: MP3, WAV, M4A, OGG • Max: 10MB
+                  Supports: MP3, WAV, M4A, OGG • Max: 10MB • Min: 1 minute
                 </p>
               </div>
             )}
