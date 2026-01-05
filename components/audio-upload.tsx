@@ -214,6 +214,11 @@ export function AudioUpload() {
         <CardDescription>
           Upload your audio recording (minimum 1 minute)
         </CardDescription>
+        <Alert className="mt-4">
+          <AlertDescription className="text-sm">
+            💡 <strong>Tip:</strong> For best results, record in a quiet environment with clear audio. Avoid background noise, echo, or wind. Speak naturally at a normal pace.
+          </AlertDescription>
+        </Alert>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Name Input */}
