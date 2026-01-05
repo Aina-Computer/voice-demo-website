@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AudioRecorder } from "@/components/audio-recorder";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
-type UploadMode = "file" | "record";
 
 interface UploadResponse {
   success: boolean;
@@ -25,13 +25,13 @@ interface UploadResponse {
 }
 
 export function AudioUpload() {
-  const [mode, setMode] = useState<UploadMode>("file");
   const [name, setName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState("");
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Validate audio duration
   const validateAudioDuration = (file: File): Promise<number> => {
@@ -89,8 +89,9 @@ export function AudioUpload() {
     accept: {
       "audio/mpeg": [".mp3"],
       "audio/wav": [".wav"],
-      "audio/mp4": [".m4a"],
+      "audio/mp4": [".m4a", ".mp4"],
       "audio/ogg": [".ogg"],
+      "audio/webm": [".webm"],
     },
     maxFiles: 1,
     multiple: false,
@@ -109,6 +110,12 @@ export function AudioUpload() {
       return;
     }
 
+    if (!acceptedTerms) {
+      setUploadStatus("error");
+      setMessage("Please accept the terms and conditions");
+      return;
+    }
+
     setUploadStatus("uploading");
     setUploadProgress(0);
     setMessage("");
@@ -118,8 +125,11 @@ export function AudioUpload() {
     formData.append("file", selectedFile);
     formData.append("duration", audioDuration.toString());
 
+    // Use AI enhancement endpoint
+    const apiEndpoint = "/api/enhance";
+
     try {
-      // Simulate progress
+      // Simulate progress (slower for AI enhancement)
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -128,9 +138,9 @@ export function AudioUpload() {
           }
           return prev + 10;
         });
-      }, 200);
+      }, 1000);
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,
       });
@@ -142,7 +152,7 @@ export function AudioUpload() {
 
       if (response.ok && data.success) {
         setUploadStatus("success");
-        setMessage("Audio uploaded successfully! Notification sent to Slack.");
+        setMessage("Voice enhanced with AI! Both raw and enhanced audio sent to Slack.");
 
         // Reset form after 3 seconds
         setTimeout(() => {
@@ -152,6 +162,7 @@ export function AudioUpload() {
           setUploadStatus("idle");
           setUploadProgress(0);
           setMessage("");
+          setAcceptedTerms(false);
         }, 3000);
       } else {
         setUploadStatus("error");
@@ -205,30 +216,6 @@ export function AudioUpload() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Mode Tabs */}
-        <div className="flex gap-2 p-1 bg-neutral-100 dark:bg-neutral-900 rounded-lg">
-          <button
-            onClick={() => setMode("file")}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              mode === "file"
-                ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-sm"
-                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-50"
-            }`}
-          >
-            📁 Upload File
-          </button>
-          <button
-            onClick={() => setMode("record")}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              mode === "record"
-                ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 shadow-sm"
-                : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-50"
-            }`}
-          >
-            🎙️ Record Now
-          </button>
-        </div>
-
         {/* Name Input */}
         <div className="space-y-2">
           <label htmlFor="name" className="text-sm font-medium">
@@ -244,76 +231,124 @@ export function AudioUpload() {
           />
         </div>
 
-        {/* File Upload Mode */}
-        {mode === "file" && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Audio File</label>
-            <div
-              {...getRootProps()}
-              className={`
-                border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-                ${
-                  isDragActive
-                    ? "border-neutral-900 bg-neutral-50 dark:border-neutral-50 dark:bg-neutral-900"
-                    : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-700 dark:hover:border-neutral-600"
-                }
-                ${uploadStatus === "uploading" ? "opacity-50 cursor-not-allowed" : ""}
-              `}
-            >
-              <input {...getInputProps()} disabled={uploadStatus === "uploading"} />
-              {selectedFile ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
-                    ✓ {selectedFile.name}
-                  </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    {formatFileSize(selectedFile.size)} • {formatDuration(audioDuration || 0)}
-                  </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Click or drag to replace
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                    {isDragActive
-                      ? "Drop your audio file here"
-                      : "Drag & drop your audio file here"}
-                  </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    or click to browse
-                  </p>
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                    Supports: MP3, WAV, M4A, OGG • Max: 10MB • Min: 1 minute
-                  </p>
-                </div>
-              )}
+        {/* File Upload */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Audio File</label>
+          <div
+            {...getRootProps()}
+            className={`
+              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+              ${
+                isDragActive
+                  ? "border-neutral-900 bg-neutral-50 dark:border-neutral-50 dark:bg-neutral-900"
+                  : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-700 dark:hover:border-neutral-600"
+              }
+              ${uploadStatus === "uploading" ? "opacity-50 cursor-not-allowed" : ""}
+            `}
+          >
+            <input {...getInputProps()} disabled={uploadStatus === "uploading"} />
+            {selectedFile ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-50">
+                  ✓ {selectedFile.name}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {formatFileSize(selectedFile.size)} • {formatDuration(audioDuration || 0)}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Click or drag to replace
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  {isDragActive
+                    ? "Drop your audio file here"
+                    : "Drag & drop your audio file here"}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  or click to browse
+                </p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                  Supports: MP3, WAV, MP4, M4A, OGG, WebM • Max: 10MB • Min: 1 minute
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        {!selectedFile && (
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-neutral-200 dark:border-neutral-800"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white dark:bg-neutral-950 px-2 text-neutral-500 dark:text-neutral-400">
+                Or
+              </span>
             </div>
           </div>
         )}
 
-        {/* Record Mode */}
-        {mode === "record" && (
+        {/* Recording */}
+        {!selectedFile && (
           <AudioRecorder onRecordingComplete={handleRecordingComplete} />
         )}
 
-        {/* Recording Ready Indicator */}
-        {mode === "record" && selectedFile && audioDuration && (
+        {/* AI Enhancement Info */}
+        {!selectedFile && (
           <Alert>
             <AlertDescription>
-              ✓ Recording ready ({formatDuration(audioDuration)}) - Click Upload Audio below
+              🎨 AI Enhancement will clone your voice, enhance it for clarity and energy, and generate a professional audio with the sample transcript. Both raw and enhanced versions will be saved.
             </AlertDescription>
           </Alert>
         )}
+
+        {/* File/Recording Ready Indicator */}
+        {selectedFile && audioDuration && (
+          <Alert>
+            <AlertDescription>
+              ✓ Audio ready ({formatDuration(audioDuration)}) - Click "🎨 Enhance with AI" below
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Terms and Conditions */}
+        <div className="flex items-start space-x-3 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+          <Checkbox
+            id="terms"
+            checked={acceptedTerms}
+            onCheckedChange={(checked: boolean) => setAcceptedTerms(checked === true)}
+            disabled={uploadStatus === "uploading"}
+          />
+          <div className="flex-1">
+            <label
+              htmlFor="terms"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              I agree to the terms and conditions
+            </label>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+              By uploading your voice, you consent to voice cloning and AI processing for demo purposes at CES 2025.
+              Your audio will be stored securely and used only for demonstration. We will not share your data with third parties.
+            </p>
+          </div>
+        </div>
 
         {/* Upload Progress */}
         {uploadStatus === "uploading" && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-neutral-700 dark:text-neutral-300">Uploading...</span>
+              <span className="text-neutral-700 dark:text-neutral-300">
+                Enhancing with AI...
+              </span>
               <span className="text-neutral-500 dark:text-neutral-400">{uploadProgress}%</span>
             </div>
             <Progress value={uploadProgress} />
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+              This may take 30-60 seconds for voice cloning and enhancement
+            </p>
           </div>
         )}
 
@@ -330,10 +365,10 @@ export function AudioUpload() {
         {/* Upload Button */}
         <Button
           onClick={handleUpload}
-          disabled={!name.trim() || !selectedFile || uploadStatus === "uploading"}
+          disabled={!name.trim() || !selectedFile || !acceptedTerms || uploadStatus === "uploading"}
           className="w-full"
         >
-          {uploadStatus === "uploading" ? "Uploading..." : "Upload Audio"}
+          {uploadStatus === "uploading" ? "Enhancing..." : "🎨 Enhance with AI"}
         </Button>
       </CardContent>
     </Card>

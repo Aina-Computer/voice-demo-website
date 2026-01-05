@@ -16,6 +16,7 @@ const ALLOWED_MIME_TYPES = [
   "audio/x-m4a", // .m4a (alternative)
   "audio/ogg", // .ogg
   "audio/webm", // .webm (browser recordings)
+  "video/mp4", // .mp4 files are often identified as video/mp4
 ];
 
 export async function POST(request: NextRequest) {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_MIME_TYPES.includes(baseMimeType)) {
       return NextResponse.json(
         {
-          error: "Invalid file type. Please upload .mp3, .wav, .m4a, .ogg, or .webm files",
+          error: "Invalid file type. Please upload .mp3, .wav, .mp4, .m4a, .ogg, or .webm files",
         },
         { status: 400 }
       );
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
       fileSize: fileSizeInMB,
       duration,
       timestamp,
+      audioType: "raw",
     });
 
     return NextResponse.json({
