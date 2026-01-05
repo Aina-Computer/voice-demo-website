@@ -8,7 +8,7 @@ export default function Home() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-neutral-900 dark:text-neutral-50">
-            Voice Demo - CES 2025
+            Mirage Voice Modulation Demo
           </h1>
           <p className="text-neutral-600 dark:text-neutral-400">
             Experience the power of voice analysis and audio sharing

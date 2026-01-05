@@ -26,6 +26,7 @@ interface UploadResponse {
 
 export function AudioUpload() {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -104,6 +105,20 @@ export function AudioUpload() {
       return;
     }
 
+    if (!email.trim()) {
+      setUploadStatus("error");
+      setMessage("Please enter your email");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setUploadStatus("error");
+      setMessage("Please enter a valid email address");
+      return;
+    }
+
     if (!selectedFile || audioDuration === null) {
       setUploadStatus("error");
       setMessage("Please select an audio file");
@@ -122,6 +137,7 @@ export function AudioUpload() {
 
     const formData = new FormData();
     formData.append("name", name.trim());
+    formData.append("email", email.trim());
     formData.append("file", selectedFile);
     formData.append("duration", audioDuration.toString());
 
@@ -157,6 +173,7 @@ export function AudioUpload() {
         // Reset form after 3 seconds
         setTimeout(() => {
           setName("");
+          setEmail("");
           setSelectedFile(null);
           setAudioDuration(null);
           setUploadStatus("idle");
@@ -234,6 +251,24 @@ export function AudioUpload() {
             onChange={(e) => setName(e.target.value)}
             disabled={uploadStatus === "uploading"}
           />
+        </div>
+
+        {/* Email Input */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
+            Your Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={uploadStatus === "uploading"}
+          />
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            We'll use this email to notify you when your voice model is ready for demo at Mirage booth at CES 2026.
+          </p>
         </div>
 
         {/* File Upload */}
@@ -335,7 +370,7 @@ export function AudioUpload() {
               I agree to the terms and conditions
             </label>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-              By uploading your voice, you consent to voice cloning and AI processing for demo purposes at CES 2025.
+              By uploading your voice, you consent to voice cloning and AI processing for demo purposes at CES 2026.
               Your audio will be stored securely and used only for demonstration. We will not share your data with third parties.
             </p>
           </div>
@@ -370,7 +405,7 @@ export function AudioUpload() {
         {/* Upload Button */}
         <Button
           onClick={handleUpload}
-          disabled={!name.trim() || !selectedFile || !acceptedTerms || uploadStatus === "uploading"}
+          disabled={!name.trim() || !email.trim() || !selectedFile || !acceptedTerms || uploadStatus === "uploading"}
           className="w-full"
         >
           {uploadStatus === "uploading" ? "Enhancing..." : "🎨 Enhance with AI"}

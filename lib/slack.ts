@@ -5,6 +5,7 @@ import { IncomingWebhook } from "@slack/webhook";
  */
 export async function sendSlackNotification(data: {
   userName: string;
+  userEmail?: string;
   downloadUrl?: string; // For backward compatibility
   fileSize?: string; // For backward compatibility
   duration: number;
@@ -49,6 +50,10 @@ export async function sendSlackNotification(data: {
           type: "mrkdwn",
           text: `*📅 Uploaded:*\n${data.timestamp}`,
         },
+        ...(data.userEmail ? [{
+          type: "mrkdwn",
+          text: `*📧 Email:*\n${data.userEmail}`,
+        }] : []),
       ],
     },
   ];

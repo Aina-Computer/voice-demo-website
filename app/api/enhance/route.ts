@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
     const file = formData.get("file") as File;
     const duration = parseFloat(formData.get("duration") as string);
 
@@ -37,6 +38,13 @@ export async function POST(request: NextRequest) {
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
         { error: "Name is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!email || email.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Email is required" },
         { status: 400 }
       );
     }
@@ -152,6 +160,7 @@ export async function POST(request: NextRequest) {
     // Step 6: Send Slack notification (always send, even if enhancement failed)
     await sendSlackNotification({
       userName: name,
+      userEmail: email,
       duration: enhancedDuration || duration, // Use enhanced duration if available, otherwise raw
       timestamp,
       rawDownloadUrl: rawDownloadUrl,
