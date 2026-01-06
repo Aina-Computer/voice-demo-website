@@ -6,19 +6,18 @@ import { IncomingWebhook } from "@slack/webhook";
 export async function sendSlackNotification(data: {
   userName: string;
   userEmail?: string;
-  downloadUrl?: string; // For backward compatibility
-  fileSize?: string; // For backward compatibility
+  downloadUrl?: string;
+  fileSize?: string;
   duration: number;
   timestamp: string;
-  audioType?: "raw" | "enhanced"; // Optional: defaults to "raw"
-  // New fields for dual audio
+  audioType?: "raw" | "enhanced";
   rawDownloadUrl?: string;
   rawFileSize?: string;
   rawDuration?: number;
   enhancedDownloadUrl?: string;
   enhancedFileSize?: string;
   enhancedDuration?: number;
-  error?: string; // Error message if AI enhancement failed
+  error?: string;
 }): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
@@ -29,7 +28,6 @@ export async function sendSlackNotification(data: {
 
   const webhook = new IncomingWebhook(webhookUrl);
 
-  // Check if we have both raw and enhanced audio
   const hasBothVersions = data.rawDownloadUrl && data.enhancedDownloadUrl;
 
   const blocks: any[] = [
@@ -60,7 +58,6 @@ export async function sendSlackNotification(data: {
   ];
 
   if (hasBothVersions) {
-    // Show both raw and enhanced audio with individual durations
     blocks.push(
       {
         type: "section",
@@ -78,7 +75,6 @@ export async function sendSlackNotification(data: {
       }
     );
   } else {
-    // Single audio (raw only, possibly with error)
     const audioTypeText = data.audioType === "enhanced" ? "🎨 AI Enhanced Audio" : "🎵 Raw Audio";
     blocks[1].fields.push({
       type: "mrkdwn",
@@ -101,7 +97,6 @@ export async function sendSlackNotification(data: {
     });
   }
 
-  // Add error section if AI enhancement failed
   if (data.error) {
     blocks.push({
       type: "section",
@@ -111,6 +106,14 @@ export async function sendSlackNotification(data: {
       },
     });
   }
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `<https://api.aina.co/api/v1/pilot/send-voice-email?email=${encodeURIComponent(data.userEmail || '')}|✅ Send Email>`,
+    },
+  });
 
   blocks.push({
     type: "divider",
