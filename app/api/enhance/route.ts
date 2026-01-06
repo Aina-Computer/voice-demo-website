@@ -26,11 +26,13 @@ const ALLOWED_MIME_TYPES = [
 
 export async function POST(request: NextRequest) {
   let clonedVoiceId: string | null = null;
+  let name: string = "";
+  let email: string = "";
 
   try {
     const formData = await request.formData();
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
+    name = formData.get("name") as string;
+    email = formData.get("email") as string;
     const file = formData.get("file") as File;
     const duration = parseFloat(formData.get("duration") as string);
 
@@ -87,22 +89,8 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Check if AI voice enhancement API key is configured
-    if (!process.env.ELEVENLABS_API_KEY) {
-      return NextResponse.json(
-        { error: "AI voice enhancement not configured. Please add API key to environment variables." },
-        { status: 500 }
-      );
-    }
-
-    // Step 1: Clone voice with AI
+    // Step 1: Upload raw audio to S3 FIRST (before any ElevenLabs operations)
     const voiceName = `ces-demo-${name.replace(/\s+/g, "-")}-${Date.now()}`;
-    console.log("Cloning voice:", voiceName);
-    console.log("API Key present:", !!process.env.ELEVENLABS_API_KEY);
-    clonedVoiceId = await cloneVoice(buffer, voiceName);
-    console.log("Voice cloned successfully. ID:", clonedVoiceId);
-
-    // Step 2: Upload raw audio to S3 first
     const rawFileName = `raw-${voiceName}.${file.name.split('.').pop()}`;
     const rawS3Key = generateS3Key(rawFileName, name);
 
@@ -127,48 +115,62 @@ export async function POST(request: NextRequest) {
     let enhancedFileName: string | undefined;
     let enhancedFileSizeInMB: string | undefined;
     let enhancedDuration: number | undefined;
+    let enhancementError: string | undefined;
 
-    // Step 3: Try to generate enhanced audio with voice remix
-    try {
-      console.log("Generating enhanced audio with voice remix...");
-      const enhancedResult = await generateEnhancedAudio(clonedVoiceId);
-      enhancedDuration = enhancedResult.duration;
-      console.log("Enhanced audio generated successfully. Duration:", enhancedDuration, "seconds");
+    // Step 2: Try ElevenLabs AI enhancement (Clone + Generate)
+    if (process.env.ELEVENLABS_API_KEY) {
+      try {
+        console.log("Cloning voice:", voiceName);
+        console.log("API Key present:", !!process.env.ELEVENLABS_API_KEY);
+        clonedVoiceId = await cloneVoice(buffer, voiceName);
+        console.log("Voice cloned successfully. ID:", clonedVoiceId);
 
-      // Step 4: Upload enhanced audio to S3
-      enhancedFileName = `enhanced-${voiceName}.mp3`;
-      const enhancedS3Key = generateS3Key(enhancedFileName, name);
+        console.log("Generating enhanced audio with voice remix...");
+        const enhancedResult = await generateEnhancedAudio(clonedVoiceId);
+        enhancedDuration = enhancedResult.duration;
+        console.log("Enhanced audio generated successfully. Duration:", enhancedDuration, "seconds");
 
-      await uploadToS3(
-        enhancedResult.buffer,
-        enhancedS3Key,
-        "audio/mpeg",
-        enhancedFileName
-      );
-      console.log("Enhanced audio uploaded to S3");
+        // Upload enhanced audio to S3
+        enhancedFileName = `enhanced-${voiceName}.mp3`;
+        const enhancedS3Key = generateS3Key(enhancedFileName, name);
 
-      // Step 5: Generate presigned URL for enhanced audio
-      enhancedDownloadUrl = await generatePresignedUrl(enhancedS3Key, enhancedFileName);
-      enhancedFileSizeInMB = getFileSizeInMB(enhancedResult.buffer.length);
+        await uploadToS3(
+          enhancedResult.buffer,
+          enhancedS3Key,
+          "audio/mpeg",
+          enhancedFileName
+        );
+        console.log("Enhanced audio uploaded to S3");
 
-      console.log("AI enhancement completed successfully");
-    } catch (enhanceError) {
-      console.error("AI enhancement failed, but raw audio is available:", enhanceError);
-      // Continue to send notification with raw audio only
+        // Generate presigned URL for enhanced audio
+        enhancedDownloadUrl = await generatePresignedUrl(enhancedS3Key, enhancedFileName);
+        enhancedFileSizeInMB = getFileSizeInMB(enhancedResult.buffer.length);
+
+        console.log("AI enhancement completed successfully");
+      } catch (enhanceError) {
+        const errorMessage = enhanceError instanceof Error ? enhanceError.message : "Unknown error";
+        enhancementError = `ElevenLabs Error: ${errorMessage}`;
+        console.error("AI enhancement failed, but raw audio is available:", enhanceError);
+        // Continue to send notification with raw audio only
+      }
+    } else {
+      enhancementError = "ElevenLabs API key not configured";
+      console.warn("ElevenLabs API key not configured - skipping AI enhancement");
     }
 
-    // Step 6: Send Slack notification (always send, even if enhancement failed)
+    // Step 3: Send Slack notification (ALWAYS send, even if enhancement failed)
     await sendSlackNotification({
       userName: name,
       userEmail: email,
-      duration: enhancedDuration || duration, // Use enhanced duration if available, otherwise raw
+      duration: enhancedDuration || duration,
       timestamp,
       rawDownloadUrl: rawDownloadUrl,
       rawFileSize: rawFileSizeInMB,
-      rawDuration: duration, // Original audio duration
+      rawDuration: duration,
       enhancedDownloadUrl: enhancedDownloadUrl,
       enhancedFileSize: enhancedFileSizeInMB,
-      enhancedDuration: enhancedDuration, // AI-enhanced audio duration (may be undefined)
+      enhancedDuration: enhancedDuration,
+      error: enhancementError, // Include error in Slack message if present
     });
 
     if (enhancedDownloadUrl) {
@@ -186,8 +188,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: enhancedDownloadUrl
-        ? "Voice enhanced successfully with AI! Both raw and enhanced versions saved."
-        : "Raw audio saved successfully. AI enhancement failed, but your audio is safe.",
+        ? "Recording submitted successfully! AI voice model created."
+        : "Recording submitted successfully! Your audio has been saved.",
       data: {
         rawDownloadUrl: rawDownloadUrl,
         rawFileName: rawFileName,
@@ -200,7 +202,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Voice enhancement error:", error);
+    console.error("Critical error in audio processing:", error);
 
     // Cleanup on error
     if (clonedVoiceId) {
@@ -212,9 +214,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Try to send error notification to Slack (only if we have name and email)
+    if (name && email) {
+      try {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        await sendSlackNotification({
+          userName: name,
+          userEmail: email,
+          duration: 0,
+          timestamp: new Date().toLocaleString("en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
+          error: `Critical Error: ${errorMessage}`,
+        });
+        console.log("Error notification sent to Slack");
+      } catch (slackError) {
+        console.error("Failed to send error notification to Slack:", slackError);
+      }
+    } else {
+      console.error("Cannot send Slack notification - name or email missing");
+    }
+
     return NextResponse.json(
       {
-        error: "Failed to enhance voice with AI. Please try again.",
+        error: "Failed to process audio. Please try again.",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

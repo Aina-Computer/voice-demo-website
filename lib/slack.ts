@@ -18,6 +18,7 @@ export async function sendSlackNotification(data: {
   enhancedDownloadUrl?: string;
   enhancedFileSize?: string;
   enhancedDuration?: number;
+  error?: string; // Error message if AI enhancement failed
 }): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
@@ -77,7 +78,7 @@ export async function sendSlackNotification(data: {
       }
     );
   } else {
-    // Single audio (backward compatibility)
+    // Single audio (raw only, possibly with error)
     const audioTypeText = data.audioType === "enhanced" ? "🎨 AI Enhanced Audio" : "🎵 Raw Audio";
     blocks[1].fields.push({
       type: "mrkdwn",
@@ -85,17 +86,28 @@ export async function sendSlackNotification(data: {
     });
     blocks[1].fields.push({
       type: "mrkdwn",
-      text: `*📊 File Size:*\n${data.fileSize} MB`,
+      text: `*📊 File Size:*\n${data.fileSize || data.rawFileSize} MB`,
     });
     blocks[1].fields.push({
       type: "mrkdwn",
-      text: `*⏱️ Duration:*\n${data.duration.toFixed(1)}s`,
+      text: `*⏱️ Duration:*\n${(data.duration || data.rawDuration || 0).toFixed(1)}s`,
     });
     blocks.push({
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `*🔗 Download:*\n<${data.downloadUrl}|Click here to download>`,
+        text: `*🔗 Download:*\n<${data.downloadUrl || data.rawDownloadUrl}|Click here to download>`,
+      },
+    });
+  }
+
+  // Add error section if AI enhancement failed
+  if (data.error) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*⚠️ AI Enhancement Failed:*\n\`\`\`${data.error}\`\`\`\n_Raw audio was successfully saved and is available above._`,
       },
     });
   }

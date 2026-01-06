@@ -170,10 +170,12 @@ export function AudioUpload() {
 
   // Transcript content component
   const TranscriptContent = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl md:text-2xl font-normal text-black">
-        You Can Read This to Record
-      </h2>
+    <div className="space-y-6 font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif]">
+      <div className="bg-neutral-100 rounded-lg p-2 md:p-4">
+        <h2 className="text-lg md:text-xl font-normal text-black">
+        Please press "Start Recording" and read the text below.
+        </h2>
+      </div>
 
       <div className="space-y-4 text-sm md:text-base text-black leading-relaxed">
         <p>
@@ -311,9 +313,9 @@ export function AudioUpload() {
             {/* Recording Step */}
             {step === "recording" && (
               <div className="w-full max-w-md space-y-8">
-                <h2 className="text-2xl md:text-3xl font-normal text-black text-center">
+                {/* <h2 className="text-2xl md:text-3xl font-normal text-black text-center">
                   Record Your Voice
-                </h2>
+                </h2> */}
                 <div className="flex flex-col items-center space-y-4">
                   <AudioRecorder onRecordingComplete={handleRecordingComplete} />
                 </div>
@@ -359,7 +361,7 @@ export function AudioUpload() {
 
                 {/* Terms Text */}
                 <p className="text-xs text-left text-neutral-600 leading-relaxed">
-                  By continuing, you agree to the terms and conditions and consent to your voice being uploaded, cloned, and processed by AI for demo purposes at CES 2026, where your voice will be used for demonstration, duration, and not shared with third parties.
+                  By continuing, you consent to your voice being uploaded, cloned, and processed by AI for demo purposes at CES 2026, where your voice will be used for demonstration, duration, and not shared with third parties.
                 </p>
               </div>
             )}
