@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Audio Upload - CES Demo",
-  description: "Upload your audio recordings and share them via Slack",
+  title: "Mirage - Voice Modulation Demo CES 2026",
+  description: "Record your voice for AI-powered voice modulation demo at CES 2026",
 };
 
 export default function RootLayout({

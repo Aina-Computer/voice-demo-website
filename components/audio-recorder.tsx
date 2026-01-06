@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AudioRecorderProps {
@@ -171,90 +170,95 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-4">
-        {/* Recording Status */}
-        <div className="text-center space-y-2">
-          {isRecording && (
-            <div className="flex items-center justify-center gap-2">
-              <div className={`h-3 w-3 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`} />
-              <span className="text-sm font-medium">
-                {isPaused ? "Paused" : "Recording..."}
-              </span>
-            </div>
-          )}
+    <div className="w-full space-y-6">
+      {/* Start Recording Button */}
+      {!isRecording && !hasRecording && (
+        <div className="flex flex-col items-center space-y-3">
+          <Button
+            onClick={startRecording}
+            variant="default"
+            className="!bg-black hover:!bg-neutral-800 !text-white rounded-full px-12 py-8 text-lg font-normal flex items-center gap-3"
+          >
+            <div className="w-3 h-3 bg-red-500 rounded-full" />
+            Start Recording
+          </Button>
+          <p className="text-sm text-neutral-600">
+            Recording must be at least 1 minute long
+          </p>
+        </div>
+      )}
 
-          {/* Timer */}
-          <div className="text-4xl font-mono font-bold text-neutral-900 dark:text-neutral-50">
+      {/* Recording In Progress */}
+      {isRecording && (
+        <div className="flex flex-col items-center space-y-8">
+          {/* Large Timer */}
+          <div className="text-8xl md:text-9xl font-light text-black tracking-tight font-mono">
             {formatTime(recordingTime)}
           </div>
 
-          {recordingTime < 60 && recordingTime > 0 && (
-            <div className="text-xs text-neutral-500 dark:text-neutral-400">
-              Minimum: {formatTime(60 - recordingTime)} remaining
-            </div>
-          )}
-
-          {recordingTime >= 60 && (
-            <div className="text-xs text-green-600 dark:text-green-400">
-              ✓ Minimum duration reached
-            </div>
-          )}
-        </div>
-
-        {/* Playback */}
-        {hasRecording && audioUrl && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Preview Recording</label>
-            <audio src={audioUrl} controls className="w-full" />
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Controls */}
-        <div className="flex flex-col gap-2">
-          {!isRecording && !hasRecording && (
-            <Button onClick={startRecording} className="w-full">
-              🎤 Start Recording
-            </Button>
-          )}
-
-          {isRecording && (
-            <div className="grid grid-cols-2 gap-2">
-              {!isPaused ? (
-                <Button onClick={pauseRecording} variant="outline">
-                  ⏸ Pause
-                </Button>
-              ) : (
-                <Button onClick={resumeRecording} variant="outline">
-                  ▶️ Resume
-                </Button>
-              )}
-              <Button onClick={stopRecording} variant="default">
-                ⏹ Stop
+          {/* Pause and Stop Buttons */}
+          <div className="flex gap-4">
+            {!isPaused ? (
+              <Button
+                onClick={pauseRecording}
+                className="rounded-full px-8 py-6 text-base bg-white border-2 border-black text-black hover:bg-neutral-50"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
+                Pause
               </Button>
+            ) : (
+              <Button
+                onClick={resumeRecording}
+                className="rounded-full px-8 py-6 text-base bg-white border-2 border-black text-black hover:bg-neutral-50"
+              >
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Resume
+              </Button>
+            )}
+            <Button
+              onClick={stopRecording}
+              className="rounded-full px-8 py-6 text-base border-2 border-black !bg-black hover:!bg-neutral-800 !text-white"
+            >
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" />
+              </svg>
+              Stop
+            </Button>
+          </div>
+
+          {/* Info Text */}
+          <p className="text-sm text-neutral-600">
+            Recording must be at least 1 minute long
+          </p>
+        </div>
+      )}
+
+      {/* Recording Complete */}
+      {hasRecording && !isRecording && (
+        <div className="space-y-4">
+          {audioUrl && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Preview Recording</label>
+              <audio src={audioUrl} controls className="w-full" />
             </div>
           )}
 
-          {isRecording && (
-            <Button onClick={cancelRecording} variant="ghost" className="w-full">
-              Cancel Recording
-            </Button>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          {hasRecording && !isRecording && recordingTime >= 60 && (
-            <Button onClick={cancelRecording} variant="outline" className="w-full">
-              Record Again
-            </Button>
-          )}
+          <Button onClick={cancelRecording} className="w-full rounded-full px-8 py-6 text-base bg-white border-2 border-black text-black hover:bg-neutral-50">
+            Retake
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
