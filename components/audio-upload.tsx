@@ -239,7 +239,7 @@ export function AudioUpload() {
 
               <div className="space-y-6">
                 <p className="text-base text-black">
-                  You can follow more of our work here
+                Please follow our socials to stay connected!
                 </p>
                 <div className="flex gap-12 justify-center items-center">
                   <a href="https://x.com/ProjectMirageHQ" target="_blank" rel="noopener noreferrer" className="text-black hover:text-neutral-600 transition-colors">
@@ -361,7 +361,7 @@ export function AudioUpload() {
 
                 {/* Terms Text */}
                 <p className="text-xs text-left text-neutral-600 leading-relaxed">
-                  By continuing, you consent to your voice being uploaded, cloned, and processed by AI for demo purposes at CES 2026, where your voice will be used for demonstration, duration, and not shared with third parties.
+                By continuing, you consent to your voice being uploaded, cloned and processed by AI for demonstration purposes at CES 2026. Your voice will be used for a personal demonstration to you and will be stored only for the duration of the event.
                 </p>
               </div>
             )}
@@ -402,7 +402,7 @@ export function AudioUpload() {
                       <p className="text-xs text-red-500">{emailError}</p>
                     ) : (
                       <p className="text-xs text-neutral-600 leading-relaxed">
-                        We'll use this email to notify you when your voice model is ready for demo at Mirage booth at CES 2026.
+We will use this email to inform you when your voice model is ready for demonstration at our booth at CES 2026.
                       </p>
                     )}
                   </div>

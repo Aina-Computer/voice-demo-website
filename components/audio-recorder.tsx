@@ -183,7 +183,7 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
             Start Recording
           </Button>
           <p className="text-sm text-neutral-600">
-            Recording must be at least 1 minute long
+          The recording must be at least one minute long. For optimal results, please find a quiet location.
           </p>
         </div>
       )}
@@ -233,7 +233,8 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
 
           {/* Info Text */}
           <p className="text-sm text-neutral-600">
-            Recording must be at least 1 minute long
+          The recording must be at least one minute long.<br/>
+          For optimal results, please find a quiet location   
           </p>
         </div>
       )}
