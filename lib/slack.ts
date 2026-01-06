@@ -111,7 +111,7 @@ export async function sendSlackNotification(data: {
     type: "section",
     text: {
       type: "mrkdwn",
-      text: `<https://api.aina.co/api/v1/pilot/send-voice-email?email=${encodeURIComponent(data.userEmail || '')}|✅ Send Email>`,
+      text: `<https://api.aina.co/api/v1/pilot/send-voice-email?email=${encodeURIComponent(data.userEmail || '')}&name=${encodeURIComponent(data.userName)}|✅ Send Email>`,
     },
   });
 
